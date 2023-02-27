@@ -1,0 +1,86 @@
+
+
+#include <Wire.h> // Include the Arduino SPI library
+#include <LiquidCrystal_I2C.h> // Library for LCD
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include "SPI.h"
+#include "ILI9341_t3.h"
+#include "font_Arial.h"
+
+// For the Adafruit shield, these are the default.
+#define TFT_DC  9
+#define TFT_CS 10
+
+// Use hardware SPI (on Uno, #13, #12, #11) and the above for CS/DC
+ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
+
+
+float pulsePerGal = 1707;
+float gallons;
+float pulseValue= 0;
+int var = 0;
+#define flowPulse 31
+#define ONE_WIRE_BUS 4
+unsigned long event1;
+unsigned long event2;
+int pulsecheck1;
+int pulsecheck2;
+int pulsed;
+byte pumpgph;
+float gallonmeasure;
+int saltgrams;
+
+// Setup a oneWire instance to communicate with any OneWire devices
+OneWire oneWire(ONE_WIRE_BUS);
+
+// Pass our oneWire reference to Dallas Temperature sensor 
+DallasTemperature sensors(&oneWire);
+
+void setup() {
+
+  Serial.begin(9600);
+  pinMode(flowPulse, INPUT);
+  tft.begin();
+  tft.fillScreen(ILI9341_BLACK);
+  tft.setTextColor(ILI9341_WHITE); tft.setTextSize(2);
+  tft.setCursor(15, 15); tft.print("Gallons:");
+  tft.setCursor(15, 55); tft.print("Speed:");
+  tft.setCursor(15, 35); tft.print("Salt:");
+  tft.setCursor(15, 75); tft.print("Temp:");
+  tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK); tft.setTextSize(2);
+  tempcheck();
+}
+
+void loop() {
+  gallonmeasure = pulseValue/pulsePerGal;
+  saltgrams = gallonmeasure*164;
+  pumpgph = ((pulsed*30)*60)/451;
+  if(millis() - event1 >= 2000){
+    
+    event1 = millis();
+  }
+  if(millis() - event2 >= 33){ 
+    tft.setCursor(130, 15); // Set the cursor on the third column and first row.
+    tft.print(gallonmeasure);
+    tft.setCursor(130, 35); // Set the cursor on the third column and first row.
+    tft.print(saltgrams);
+    tft.setCursor(130, 55); // Set the cursor on the third column and first row.
+    tft.print(pumpgph);
+    tft.setCursor(130, 75); // Set the cursor on the third column and first row.
+    tft.print(sensors.getTempFByIndex(0));
+    event2 = millis();
+  } 
+
+  if(digitalRead(flowPulse) > var){
+    var = 1;
+    pulseValue++;
+  }
+  if(digitalRead(flowPulse) == 0) {var = 0;}
+}
+
+
+void tempcheck(){
+  sensors.requestTemperatures();
+}
+
