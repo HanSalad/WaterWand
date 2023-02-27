@@ -1,0 +1,69 @@
+
+
+#include <Wire.h> // Include the Arduino SPI library
+#include <LiquidCrystal_I2C.h> // Library for LCD
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+LiquidCrystal_I2C lcd = LiquidCrystal_I2C(0x27, 20, 4); // Change to (0x27,20,4) for 20x4 LCD
+
+
+float pulsePerGal = 1707;
+float gallons;
+float pulseValue= 0;
+int var = 0;
+#define flowPulse 12
+#define ONE_WIRE_BUS 4
+unsigned long event1;
+unsigned long event2;
+int pulsecheck1;
+int pulsecheck2;
+int pulsed;
+byte pumpgph;
+
+// Setup a oneWire instance to communicate with any OneWire devices
+OneWire oneWire(ONE_WIRE_BUS);
+
+// Pass our oneWire reference to Dallas Temperature sensor 
+DallasTemperature sensors(&oneWire);
+
+void setup() {
+  Wire.begin();  // Initialize hardware I2C pins
+  Serial.begin(9600);
+  pinMode(flowPulse, INPUT);
+  // Initiate the LCD:
+  lcd.init();
+  lcd.backlight();
+
+}
+
+void loop() {
+  if(millis() - event1 >= 2000){
+
+    lcd.clear();
+    Serial.println("wiped 2s");
+    event1 = millis();
+  } 
+    sensors.requestTemperatures();  
+    pumpgph = ((pulsed*30)*60)/451;
+    lcd.setCursor(13, 0); // Set the cursor on the third column and first row.
+    float gallonmeasure = pulseValue/pulsePerGal;
+    int saltgrams = gallonmeasure*164;
+    lcd.print(gallonmeasure);
+    lcd.setCursor(13, 2); // Set the cursor on the third column and first row.
+    lcd.print(saltgrams);
+    lcd.setCursor(13, 1); // Set the cursor on the third column and first row.
+    lcd.print(pumpgph);
+    lcd.setCursor(13, 3); // Set the cursor on the third column and first row.
+    lcd.print(sensors.getTempFByIndex(0));
+    event2 = millis();
+  if(digitalRead(flowPulse) > var){
+    var = 1;
+    pulseValue++;
+  }
+  if(digitalRead(flowPulse) == 0) {var = 0;}
+}
+
+
+
+
